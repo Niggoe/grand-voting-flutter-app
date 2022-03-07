@@ -1,0 +1,46 @@
+{
+  "project_info": {
+    "project_number": "213199650770",
+    "project_id": "votingapp-e4c6c",
+    "storage_bucket": "votingapp-e4c6c.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:213199650770:android:39f5c1cec0a0af369ad20b",
+        "android_client_info": {
+          "package_name": "com.grandmedia.voting"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "213199650770-r2ima4crn1qfupaejaf1vb4hatg8gj9n.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDkb6GvE8CjkHSEPW_jUUdTn5M6UFulgK0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "213199650770-r2ima4crn1qfupaejaf1vb4hatg8gj9n.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "213199650770-5isrcd8c9qb0hfa8flosgdfsmon8bqmd.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.grandmedia.voting"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
