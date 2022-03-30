@@ -1,13 +1,14 @@
 // ignore_for_file: curly_braces_in_flow_control_structures
 
 import 'dart:developer';
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:voting/controller/Database.dart';
 import 'package:voting/models/QuestionScreenArguments.dart';
-
+import 'package:get/get.dart';
 import '../widgets/VotingAppBar.dart';
+import 'package:voting/screens/screens.dart';
 
 class ShowQuestionListScreen extends StatefulWidget {
   const ShowQuestionListScreen({Key? key}) : super(key: key);
@@ -19,37 +20,34 @@ class ShowQuestionListScreen extends StatefulWidget {
 class ShowQuestionListScreenState extends State<ShowQuestionListScreen> {
   bool ownedQuestion = false;
   bool userAnswered = false;
+  String? id;
 
   @override
   void initState() {
     super.initState();
     ownedQuestion = false;
     userAnswered = false;
+    id = Get.arguments;
   }
 
   @override
   Widget build(BuildContext context) {
-    // TODO: implement build
-    final args = ModalRoute.of(context)!.settings.arguments;
-    log(args.toString());
-    final Stream<QuerySnapshot> _queryStream = FirebaseFirestore.instance
-        .collection('questions')
-        .where("votingID", isEqualTo: args)
-        .orderBy('order', descending: false)
-        .snapshots();
-
     return Scaffold(
         appBar: VotingAppBar(
             title: const Text('Pick Question  ...'),
             appBar: AppBar(),
             widgets: const <Widget>[Icon(Icons.more_vert)]),
+        floatingActionButton: FloatingActionButton(
+            child: const Icon(Icons.add),
+            onPressed: () {
+              Get.to(() => CreateQuestionScreen(), arguments: id);
+            }),
         body: StreamBuilder<QuerySnapshot>(
-            stream: _queryStream,
+            stream: Database().getQuestionsForVoting(id!),
             builder:
                 (BuildContext context, AsyncSnapshot<QuerySnapshot> snapshot) {
               if (snapshot.hasError) {
-                log(snapshot.error.toString());
-                return Text('Something went wrong');
+                Get.snackbar('Something went wrong', snapshot.error.toString());
               }
 
               if (snapshot.connectionState == ConnectionState.waiting) {
@@ -67,12 +65,12 @@ class ShowQuestionListScreenState extends State<ShowQuestionListScreen> {
                     children: <Widget>[
                       ListTile(
                         leading: Icon(Icons.album),
-                        title: Text(data['question']),
+                        title: Text(data['questionString']),
                         onTap: () {
-                          if (false) {
-                            Navigator.of(context).pushNamed('showAnswerScreen',
+                          if (checkIfUserHasNotVoted(data)) {
+                            Get.to(() => VoteScreen(),
                                 arguments: QuestionScreenArguments(
-                                    data['question'], document.id));
+                                    data['questionString'], document.id));
                           } else {
                             showDialog(
                                 context: context,
@@ -110,8 +108,8 @@ class ShowQuestionListScreenState extends State<ShowQuestionListScreen> {
                                         onPressed: () {
                                           print(snapshot.data);
                                           if (snapshot.data == true) {
-                                            Navigator.pushNamed(
-                                                context, 'showResultScreen');
+                                            Get.to(() => ResultViewPage(),
+                                                arguments: document.id);
                                           } else {
                                             ScaffoldMessenger.of(context)
                                                 .showSnackBar(const SnackBar(
@@ -157,5 +155,14 @@ class ShowQuestionListScreenState extends State<ShowQuestionListScreen> {
     {
       return false;
     }
+  }
+
+  bool checkIfUserHasNotVoted(Map<String, dynamic> data) {
+    String userId = FirebaseAuth.instance.currentUser!.uid;
+    List<dynamic> allUsersVoted = data["userVoted"];
+    if (allUsersVoted.contains(userId)) {
+      return false;
+    }
+    return true;
   }
 }

@@ -1,8 +1,9 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:voting/models/QuestionScreenArguments.dart';
+import 'package:voting/screens/screens.dart';
 import 'package:voting/widgets/VotingAppBar.dart';
+import 'package:get/get.dart';
 
 /** 
  * This is the screen where the user has to vote and enter his choice of answer
@@ -14,19 +15,31 @@ class VoteScreen extends StatefulWidget {
 }
 
 class VoteScreenState extends State<VoteScreen> {
+  bool? userHasVoted;
+  String? questionID;
+  String? question;
+  @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+    final args = Get.arguments;
+    checkUserAnsweredAlready(args.questionID);
+    questionID = args.questionID;
+    question = args.question;
+  }
+
   @override
   Widget build(BuildContext context) {
-    final args =
-        ModalRoute.of(context)!.settings.arguments as QuestionScreenArguments;
     final Stream<QuerySnapshot> _queryStream = FirebaseFirestore.instance
+        .collection('questions')
+        .doc(questionID)
         .collection('answers')
-        .where("questionID", isEqualTo: args.questionID)
         .snapshots();
 
     return Scaffold(
       appBar: VotingAppBar(
         appBar: AppBar(),
-        title: Text(args.question),
+        title: Text(question!),
         widgets: [],
       ),
       body: StreamBuilder<QuerySnapshot>(
@@ -40,7 +53,8 @@ class VoteScreenState extends State<VoteScreen> {
               case ConnectionState.none:
                 return new Text('Not connected to the Stream or null');
               case ConnectionState.active:
-                List<DocumentSnapshot> allAnswers;
+                List allAnswers;
+                print(snapshot);
                 var totalAnswersCount = 0;
                 if (snapshot.hasData) {
                   allAnswers = snapshot.data!.docs;
@@ -57,10 +71,10 @@ class VoteScreenState extends State<VoteScreen> {
                               child: InkWell(
                                 splashColor: Colors.blue.withAlpha(30),
                                 onTap: () {
-                                  answerVotingQuestion(
-                                      args.questionID,
-                                      allAnswers[index].id,
-                                      allAnswers[index]["text"]);
+                                  executeClickOnOption(
+                                      allAnswers[index]["answerString"],
+                                      questionID,
+                                      allAnswers[index].id);
                                 },
                                 child: Container(
                                     child: Column(
@@ -70,8 +84,8 @@ class VoteScreenState extends State<VoteScreen> {
                                           child: Align(
                                               alignment: Alignment.topCenter,
                                               heightFactor: 1.0,
-                                              child: Text(
-                                                  allAnswers[index]["text"]))),
+                                              child: Text(allAnswers[index]
+                                                  ["answerString"]))),
                                     ])),
                               ),
                             ),
@@ -100,32 +114,62 @@ class VoteScreenState extends State<VoteScreen> {
     );
   }
 
-  void answerVotingQuestion(String questionID, String answerID, String answer) {
-    showDialog(
-        context: context,
-        builder: (BuildContext context) => AlertDialog(
-              title: const Text('Confirm'),
-              content: Text('Are you sure? You voted for \n\n $answer'),
-              actions: <Widget>[
-                IconButton(
-                    icon: const Icon(Icons.check),
-                    onPressed: () {
-                      String userID = FirebaseAuth.instance.currentUser!.uid;
-                      var listUser = [userID];
-                      FirebaseFirestore.instance
-                          .collection('questions')
-                          .doc(questionID)
-                          .update(
-                              {"userVoted": FieldValue.arrayUnion(listUser)});
-                      print('Answer doc id: $answerID');
-                      FirebaseFirestore.instance
-                          .collection('answers')
-                          .doc(answerID)
-                          .update({"votes": FieldValue.increment(1)});
-                      Navigator.popUntil(
-                          context, ModalRoute.withName('showVotingScreen'));
-                    })
-              ],
-            ));
+  void checkUserAnsweredAlready(String questionId) async {
+    String userId = FirebaseAuth.instance.currentUser!.uid;
+    List<dynamic> allUsersVoted = [];
+    final querySnapshot = await FirebaseFirestore.instance
+        .collection('questions')
+        .doc(questionId)
+        .get();
+    var data = querySnapshot.data();
+
+    allUsersVoted = data?["userVoted"];
+    if (allUsersVoted.contains(userId)) {
+      setState(() {
+        userHasVoted = true;
+      });
+    }
+    setState(() {
+      userHasVoted = false;
+    });
+  }
+
+  void executeClickOnOption(allAnswer, questionId, id) {
+    AlertDialog alert = AlertDialog(
+        title: const Text('Confirm'),
+        content: Text('Are you sure? You voted for \n\n $allAnswer'),
+        actions: <Widget>[
+          IconButton(
+              icon: const Icon(Icons.check),
+              onPressed: () {
+                String userID = FirebaseAuth.instance.currentUser!.uid;
+                var listUser = [userID];
+                FirebaseFirestore.instance
+                    .collection('questions')
+                    .doc(questionId)
+                    .update({"userVoted": FieldValue.arrayUnion(listUser)});
+                print('Answer doc id: $id');
+                FirebaseFirestore.instance
+                    .collection('questions')
+                    .doc(questionId)
+                    .collection('answers')
+                    .doc(id)
+                    .update({"votes": FieldValue.increment(1)});
+                setState(() {
+                  userHasVoted = true;
+                });
+                Get.back();
+              })
+        ]);
+    print("ich bin hier");
+    if (userHasVoted == true) {
+      Get.snackbar("Already Votoed", "You have already voted");
+    } else {
+      showDialog(
+          context: context,
+          builder: (BuildContext context) {
+            return alert;
+          });
+    }
   }
 }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:voting/config/strings.dart';
 import 'package:voting/screens/CreateVoting.dart';
+import 'package:voting/screens/SelectVotingScreen.dart';
 import 'package:voting/widgets/VotingAppBar.dart';
 import 'package:get/get.dart';
 
@@ -81,7 +82,9 @@ class StartScreenScreen extends StatelessWidget {
                       children: <Widget>[
                         IconButton(
                             iconSize: 130,
-                            onPressed: () {},
+                            onPressed: () {
+                              Get.to(() => SelectVotingScreen());
+                            },
                             icon: const Icon(Icons.outbox_outlined)),
                         Text("My votings")
                       ],

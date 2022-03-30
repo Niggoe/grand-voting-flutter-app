@@ -1,8 +1,13 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:voting/controller/Database.dart';
+import 'package:voting/controller/controllers.dart';
 import 'package:voting/widgets/VotingAppBar.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:get/get.dart';
+
+import 'QuestionListScreen.dart';
 
 class SelectVotingScreen extends StatefulWidget {
   const SelectVotingScreen({Key? key}) : super(key: key);
@@ -16,22 +21,21 @@ class SelectVotingScreenState extends State<SelectVotingScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final User? user = auth.currentUser;
-    final uid = user!.uid;
-    print('User Id from logged in users: ' + uid);
-
-    final Stream<QuerySnapshot> _queryStream = FirebaseFirestore.instance
-        .collection('votings')
-        .where("owner", isEqualTo: uid)
-        .snapshots();
+    var uid = Get.find<UserController>().user.id;
+    print('User Id from logged in users: ' + uid!);
 
     return Scaffold(
         appBar: VotingAppBar(
             title: const Text('Select Voting'),
             appBar: AppBar(),
             widgets: const <Widget>[Icon(Icons.more_vert)]),
+        floatingActionButton: FloatingActionButton(
+            child: const Icon(Icons.add),
+            onPressed: () {
+              Get.to(() => SelectVotingScreen());
+            }),
         body: StreamBuilder<QuerySnapshot>(
-            stream: _queryStream,
+            stream: Database().getVotingsForUser(uid),
             builder:
                 (BuildContext context, AsyncSnapshot<QuerySnapshot> snapshot) {
               if (snapshot.hasError) {
@@ -59,7 +63,8 @@ class SelectVotingScreenState extends State<SelectVotingScreen> {
                         subtitle: Text(data['description']),
                         onTap: () {
                           if (!checkForwarding(data)) {
-                            Navigator.of(context).pushNamed('showVotingScreen');
+                            Get.to(() => ShowQuestionListScreen(),
+                                arguments: document.id);
                           } else {
                             showDialog(
                                 context: context,
@@ -71,7 +76,7 @@ class SelectVotingScreenState extends State<SelectVotingScreen> {
                                         IconButton(
                                             icon: const Icon(Icons.close),
                                             onPressed: () {
-                                              Navigator.pop(context);
+                                              Get.back();
                                             })
                                       ],
                                     ));

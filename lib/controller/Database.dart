@@ -3,6 +3,8 @@ import 'package:voting/models/models.dart';
 import 'package:get/get.dart';
 import 'package:voting/controller/controllers.dart';
 
+import '../models/question.dart';
+
 class Database {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   late DocumentReference _votingRef;
@@ -73,5 +75,54 @@ class Database {
         .doc(_electionId)
         .get();
     return data;
+  }
+
+  Stream<QuerySnapshot> getVotingsForUser(String uid) {
+    return FirebaseFirestore.instance
+        .collection('votings')
+        .where("owner", isEqualTo: uid)
+        .snapshots();
+  }
+
+  Stream<QuerySnapshot> getQuestionsForVoting(String votingId) {
+    return FirebaseFirestore.instance
+        .collection('questions')
+        .where("votingID", isEqualTo: votingId)
+        .snapshots();
+  }
+
+  Future<DocumentReference?> createQuestion(Question question) async {
+    try {
+      await _firestore.collection('questions').add({
+        'questionString': question.question,
+        'votingID': question.votingID,
+        'userVoted': []
+      }).then((value) {
+        for (Answers answer in question.answers!) {
+          _firestore
+              .collection('questions')
+              .doc(value.id)
+              .collection('answers')
+              .add({
+            'answerString': answer.answer,
+            'votes': 0,
+          });
+        }
+      });
+      return _votingRef;
+    } catch (err) {
+      print("Error during creation of question is " + err.toString());
+      return null;
+    }
+  }
+
+  Stream<QuerySnapshot> getAllResultsForQuestion(String question) {
+    var _answerStream = FirebaseFirestore.instance
+        .collection('questions')
+        .doc(question)
+        .collection('answers')
+        .snapshots();
+
+    return _answerStream;
   }
 }

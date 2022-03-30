@@ -18,7 +18,7 @@ class VoteController extends GetxController {
 
   VoteModel get election => _electionModel.value;
 
-  set election(VoteModel value) => this._electionModel.value = value;
+  set election(VoteModel value) => _electionModel.value = value;
 
   createVoting(title, description, starttime, endtime) {
     VoteModel voting = VoteModel(
